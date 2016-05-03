@@ -1,6 +1,11 @@
 #include <pcap/pcap.h>
 #include <libnet.h>
 #include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h> // atio function
+#include <string.h>
+#include <pcap.h>
+
 
 
 struct libnet_arp_hdr_Saewook
@@ -41,7 +46,7 @@ struct libnet_arp_hdr_Saewook
 
 
 
-int main()
+int main(int argc, char** argv)
 
 {
     char *dev, errbuf[PCAP_ERRBUF_SIZE]; /* The device to sniff on, Error string */
@@ -62,6 +67,63 @@ int main()
           fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
           return(2);
       }
+
+      if(argc != 3)
+      {
+          printf("Usage: %s <Sender ip>  <receiver ip>", argv[0]);
+      }
+
+      char *sender;
+      char *receiver;
+
+      char contect[] = "."; // [] == what is mean
+      char contect2[] = ".";
+
+      char sdr_ip[20];
+      char rcv_ip[20];
+      int i = 0;
+      int a = 0;
+
+      //sender ip Setting
+      sender = strtok(argv[1], contect);
+      while(sender != NULL)
+      {
+          sdr_ip[i++] = atoi(sender);
+          sender = strtok(NULL, contect);
+      }
+
+      printf("%d\n", sdr_ip[0]);
+      printf("%d\n", sdr_ip[1]);
+      printf("%d\n", sdr_ip[2]);
+      printf("%d\n", sdr_ip[3]);
+
+      //receiver ip Setting
+      receiver = strtok(argv[2], contect2);
+      while(receiver != NULL)
+      {
+          rcv_ip[a++] = atoi(receiver);
+          receiver = strtok(NULL, contect2);
+      }
+
+      printf("%d\n", rcv_ip[0]);
+      printf("%d\n", rcv_ip[1]);
+      printf("%d\n", rcv_ip[2]);
+      printf("%d\n", rcv_ip[3]);
+
+
+
+
+
+      //ip[0] = atoi(token);
+
+
+
+      return 0;
+}
+
+
+      /*
+
 
       char send_buf[sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)] =  {0,};
       libnet_ethernet_hdr* eth_hdr = (libnet_ethernet_hdr*)send_buf;
@@ -106,17 +168,12 @@ int main()
           arp_hdr -> sender_ip[2] = 0xdb; //send_buf[30]
           arp_hdr -> sender_ip[3] = 0x02; //send_buf[31]
 
-
-
-
           arp_hdr -> target_HA[0] = 0x00; //send_buf[32]
           arp_hdr -> target_HA[1] = 0x00; //send_buf[33]
           arp_hdr -> target_HA[2] = 0x00; //send_buf[34]
           arp_hdr -> target_HA[3] = 0x00; //send_buf[35]
           arp_hdr -> target_HA[4] = 0x00; //send_buf[36]
           arp_hdr -> target_HA[5] = 0x00; //send_buf[37]
-
-
 
           arp_hdr -> target_ip[0] = 0xc0; //send_buf[38]
           arp_hdr -> target_ip[1] = 0xa8; //send_buf[39]
@@ -130,4 +187,7 @@ int main()
           }
 
           pcap_sendpacket(handle, (u_char*)send_buf, (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
-}
+          printf("%d", (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
+          */
+
+
