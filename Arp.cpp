@@ -112,8 +112,12 @@ int main(int argc, char **argv)
 
           //printf("%02X", htonl(inet_addr(argv[1]))); // dec -> hex;
 
-          char cc = htonl(inet_addr(argv[1]));
+          uint32_t cc;
+          cc = htonl(inet_addr(argv[1]));
           printf("%X", cc);
+
+
+
 
           //
 
@@ -166,18 +170,6 @@ int main(int argc, char **argv)
                   send_buf[27]
                   //send_buf[28]
                  );
-
-
-
-
-
-
-
-
-
-
-
-
       return 0;
 }
 
