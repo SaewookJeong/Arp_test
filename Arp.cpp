@@ -2,9 +2,9 @@
 #include <libnet.h>
 #include <netinet/in.h>
 #include <stdio.h>
-#include <stdlib.h> // atio function
 #include <string.h>
 #include <pcap.h>
+#include <arpa/inet.h>
 
 
 
@@ -46,7 +46,7 @@ struct libnet_arp_hdr_Saewook
 
 
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 
 {
     char *dev, errbuf[PCAP_ERRBUF_SIZE]; /* The device to sniff on, Error string */
@@ -73,59 +73,7 @@ int main(int argc, char** argv)
           printf("Usage: %s <Sender ip>  <receiver ip>", argv[0]);
       }
 
-      char *sender;
-      char *receiver;
-
-      char contect[] = "."; // [] == what is mean
-      char contect2[] = ".";
-
-      char sdr_ip[20];
-      char rcv_ip[20];
-      int i = 0;
-      int a = 0;
-
-      //sender ip Setting
-      sender = strtok(argv[1], contect);
-      while(sender != NULL)
-      {
-          sdr_ip[i++] = atoi(sender);
-          sender = strtok(NULL, contect);
-      }
-
-      printf("%d\n", sdr_ip[0]);
-      printf("%d\n", sdr_ip[1]);
-      printf("%d\n", sdr_ip[2]);
-      printf("%d\n", sdr_ip[3]);
-
-      //receiver ip Setting
-      receiver = strtok(argv[2], contect2);
-      while(receiver != NULL)
-      {
-          rcv_ip[a++] = atoi(receiver);
-          receiver = strtok(NULL, contect2);
-      }
-
-      printf("%d\n", rcv_ip[0]);
-      printf("%d\n", rcv_ip[1]);
-      printf("%d\n", rcv_ip[2]);
-      printf("%d\n", rcv_ip[3]);
-
-
-
-
-
-      //ip[0] = atoi(token);
-
-
-
-      return 0;
-}
-
-
-      /*
-
-
-      char send_buf[sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)] =  {0,};
+      u_char send_buf[sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)] =  {0,};
       libnet_ethernet_hdr* eth_hdr = (libnet_ethernet_hdr*)send_buf;
 
       // eth_hdr setting place
@@ -145,9 +93,7 @@ int main(int argc, char** argv)
       send_buf[10] = 0x12;
       send_buf[11] = 0x0b;
 
-      //arp type setting
       eth_hdr -> ether_type = htons(ETHERTYPE_ARP); // send_buf[12] = 0x08, send_buf[13] = 0x06)
-      // ====== end the ether setting ====== //
 
       libnet_arp_hdr_Saewook* arp_hdr = (libnet_arp_hdr_Saewook*)(send_buf + sizeof(libnet_ethernet_hdr));
           arp_hdr -> ar_hrd = htons(ARPHRD_ETHER); // send_buf[14] = 0x00, send_buf[15] = 0x01
@@ -162,6 +108,85 @@ int main(int argc, char** argv)
           arp_hdr -> sender_HA[3] = 0xeb; //send_buf[25]
           arp_hdr -> sender_HA[4] = 0x12; //send_buf[26]
           arp_hdr -> sender_HA[5] = 0x0b; //send_buf[27]
+
+
+          //printf("%02X", htonl(inet_addr(argv[1]))); // dec -> hex;
+
+          char cc = htonl(inet_addr(argv[1]));
+          printf("%X", cc);
+
+          //
+
+
+
+          //strncpy(sender_ip[i], str1, 2);
+/*
+          arp_hdr -> sender_ip[0] = 0xc0; //send_buf[28]
+          arp_hdr -> sender_ip[1] = 0xa8; //send_buf[29]
+          arp_hdr -> sender_ip[2] = 0xdb; //send_buf[30]
+          arp_hdr -> sender_ip[3] = 0x02; //send_buf[31]
+*/
+
+
+
+
+
+
+
+
+
+          printf("%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X  %02X  %02X \n",
+                  send_buf[0],
+                  send_buf[1],
+                  send_buf[2],
+                  send_buf[3],
+                  send_buf[4],
+                  send_buf[5],
+                  send_buf[6],
+                  send_buf[7],
+                  send_buf[8],
+                  send_buf[9],
+                  send_buf[10],
+                  send_buf[11],
+                  send_buf[12],
+                  send_buf[13],
+                  send_buf[14],
+                  send_buf[15],
+                  send_buf[16],
+                  send_buf[17],
+                  send_buf[18],
+                  send_buf[19],
+                  send_buf[20],
+                  send_buf[21],
+                  send_buf[22],
+                  send_buf[23],
+                  send_buf[24],
+                  send_buf[25],
+                  send_buf[26],
+                  send_buf[27]
+                  //send_buf[28]
+                 );
+
+
+
+
+
+
+
+
+
+
+
+
+      return 0;
+}
+
+
+      /*
+
+      // ====== end the ether setting ====== //
+
+
 
           arp_hdr -> sender_ip[0] = 0xc0; //send_buf[28]
           arp_hdr -> sender_ip[1] = 0xa8; //send_buf[29]
