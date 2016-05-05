@@ -38,9 +38,9 @@ struct libnet_arp_hdr_Saewook
     /* address information allocated dynamically */
 
     uint8_t sender_HA[ETHER_ADDR_LEN];         /* attack of hardware address */
-    uint8_t sender_ip[4];
+    uint8_t sender_ip;
     uint8_t target_HA[ETHER_ADDR_LEN];         /* victim of hardware address */
-    uint8_t target_ip[4];
+    uint8_t target_ip;
     uint8_t padding[18];
 };
 
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
       libnet_ethernet_hdr* eth_hdr = (libnet_ethernet_hdr*)send_buf;
 
       // eth_hdr setting place
-      // how to get the gateway mac address
+      // Destination Mac address
       send_buf[0] = 0xFF;
       send_buf[1] = 0xFF;
       send_buf[2] = 0xFF;
@@ -112,65 +112,31 @@ int main(int argc, char **argv)
 
           //printf("%02X", htonl(inet_addr(argv[1]))); // dec -> hex;
 
-          uint32_t cc;
-          cc = htonl(inet_addr(argv[1]));
-          printf("%X", cc);
+          uint32_t sdr_ip_hex;
+          sdr_ip_hex = htonl(inet_addr(argv[1]));
+          printf("%X", sdr_ip_hex); //send_buf[28, 29, 30, 31]
 
+          arp_hdr -> sender_ip = sdr_ip_hex;
 
+          arp_hdr -> target_HA[0] = 0x00; //send_buf[32]
+          arp_hdr -> target_HA[1] = 0x00; //send_buf[33]
+          arp_hdr -> target_HA[2] = 0x00; //send_buf[34]
+          arp_hdr -> target_HA[3] = 0x00; //send_buf[35]
+          arp_hdr -> target_HA[4] = 0x00; //send_buf[36]
+          arp_hdr -> target_HA[5] = 0x00; //send_buf[37]
 
+          uint32_t dst_ip_hex;
+          dst_ip_hex = htonl(inet_addr(argv[2]));
+          printf("%X", dst_ip_hex);
+          arp_hdr -> target_ip = dst_ip_hex; //send_buf[38, 39, 40, 41]
 
-          //
+          for(int a = 42; a <=59; a++)
+          {
+              arp_hdr -> padding[a] = 0x00;
+          }
 
-
-
-          //strncpy(sender_ip[i], str1, 2);
-/*
-          arp_hdr -> sender_ip[0] = 0xc0; //send_buf[28]
-          arp_hdr -> sender_ip[1] = 0xa8; //send_buf[29]
-          arp_hdr -> sender_ip[2] = 0xdb; //send_buf[30]
-          arp_hdr -> sender_ip[3] = 0x02; //send_buf[31]
-*/
-
-
-
-
-
-
-
-
-
-          printf("%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X  %02X  %02X \n",
-                  send_buf[0],
-                  send_buf[1],
-                  send_buf[2],
-                  send_buf[3],
-                  send_buf[4],
-                  send_buf[5],
-                  send_buf[6],
-                  send_buf[7],
-                  send_buf[8],
-                  send_buf[9],
-                  send_buf[10],
-                  send_buf[11],
-                  send_buf[12],
-                  send_buf[13],
-                  send_buf[14],
-                  send_buf[15],
-                  send_buf[16],
-                  send_buf[17],
-                  send_buf[18],
-                  send_buf[19],
-                  send_buf[20],
-                  send_buf[21],
-                  send_buf[22],
-                  send_buf[23],
-                  send_buf[24],
-                  send_buf[25],
-                  send_buf[26],
-                  send_buf[27]
-                  //send_buf[28]
-                 );
-      return 0;
+          pcap_sendpacket(handle, (u_char*)send_buf, (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
+          return 0;
 }
 
 
