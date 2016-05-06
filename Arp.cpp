@@ -85,11 +85,11 @@ int main(int argc, char **argv)
 
       // Source Mac address
       send_buf[6] = 0x00;
-      send_buf[7] = 0x50;
-      send_buf[8] = 0x56;
-      send_buf[9] = 0xeb;
-      send_buf[10] = 0x12;
-      send_buf[11] = 0x0b;
+      send_buf[7] = 0x0C;
+      send_buf[8] = 0x29;
+      send_buf[9] = 0xe1;
+      send_buf[10] = 0xaa;
+      send_buf[11] = 0x9a;
 
       eth_hdr -> ether_type = htons(ETHERTYPE_ARP); // send_buf[12] = 0x08, send_buf[13] = 0x06)
 
