@@ -6,8 +6,6 @@
 #include <pcap.h>
 #include <arpa/inet.h>
 
-
-
 struct libnet_arp_hdr_Saewook
 {
     uint16_t ar_hrd;         /* format of hardware address */
@@ -38,9 +36,9 @@ struct libnet_arp_hdr_Saewook
     /* address information allocated dynamically */
 
     uint8_t sender_HA[ETHER_ADDR_LEN];         /* attack of hardware address */
-    uint8_t sender_ip;
+    uint16_t sender_ip[2];
     uint8_t target_HA[ETHER_ADDR_LEN];         /* victim of hardware address */
-    uint8_t target_ip;
+    uint16_t target_ip[2];
     uint8_t padding[18];
 };
 
@@ -102,21 +100,23 @@ int main(int argc, char **argv)
           arp_hdr -> ar_pln = 0x04; // send_buf[19] = 0x04;
           arp_hdr -> ar_op = htons(ARPOP_REQUEST); //send_buf[20] = 0x01, send_buf[21] = 0x00
 
-          arp_hdr -> sender_HA[0] = 0x00; //send_buf[22]
-          arp_hdr -> sender_HA[1] = 0x50; //send_buf[23]
-          arp_hdr -> sender_HA[2] = 0x56; //send_buf[24]
-          arp_hdr -> sender_HA[3] = 0xeb; //send_buf[25]
-          arp_hdr -> sender_HA[4] = 0x12; //send_buf[26]
-          arp_hdr -> sender_HA[5] = 0x0b; //send_buf[27]
 
+          arp_hdr -> sender_HA[0] = send_buf[6]; //send_buf[22]
+          arp_hdr -> sender_HA[1] = send_buf[7]; //send_buf[23]
+          arp_hdr -> sender_HA[2] = send_buf[8]; //send_buf[24]
+          arp_hdr -> sender_HA[3] = send_buf[9]; //send_buf[25]
+          arp_hdr -> sender_HA[4] = send_buf[10]; //send_buf[26]
+          arp_hdr -> sender_HA[5] = send_buf[11]; //send_buf[27]
 
           //printf("%02X", htonl(inet_addr(argv[1]))); // dec -> hex;
 
+
           uint32_t sdr_ip_hex;
           sdr_ip_hex = htonl(inet_addr(argv[1]));
-          printf("%X", sdr_ip_hex); //send_buf[28, 29, 30, 31]
+          printf("%X\n", sdr_ip_hex); //send_buf[28, 29, 30, 31]
 
-          arp_hdr -> sender_ip = sdr_ip_hex;
+          arp_hdr -> sender_ip[0] = htonl(sdr_ip_hex);
+          arp_hdr -> sender_ip[1] = htons(sdr_ip_hex);
 
           arp_hdr -> target_HA[0] = 0x00; //send_buf[32]
           arp_hdr -> target_HA[1] = 0x00; //send_buf[33]
@@ -127,8 +127,10 @@ int main(int argc, char **argv)
 
           uint32_t dst_ip_hex;
           dst_ip_hex = htonl(inet_addr(argv[2]));
-          printf("%X", dst_ip_hex);
-          arp_hdr -> target_ip = dst_ip_hex; //send_buf[38, 39, 40, 41]
+          printf("%X\n", dst_ip_hex);
+
+          arp_hdr -> target_ip[0] = htonl(dst_ip_hex);
+          arp_hdr -> target_ip[1] = htons(dst_ip_hex);
 
           for(int a = 42; a <=59; a++)
           {
